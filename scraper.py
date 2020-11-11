@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 def store_valid_postings(price, title, link):
     is_valid = check_validity(price, title)
     if is_valid:
-        posting = {'price': price, 'title': title, 'link': link}
+        posting = {'title': title, 'price': price, 'link': link}
         valid_postings.append(posting)
 
 
@@ -20,12 +20,21 @@ def check_validity(price, title):
 def check_keywords(title):
     title.lower()
     for keyword in keywords:
-        return keyword in title
+        if keyword in title:
+            return True
     return False
 
 
+def format_price(price):
+    converted_price = price
+    if price.find(',') != -1:
+        converted_price = price.replace(',', '')
+    return int(converted_price[1:])
+
+
 def check_price(price):
-    if price <= upper_price_limit:
+    formatted_price = format_price(price)
+    if formatted_price <= upper_price_limit:
         return True
     return False
 
@@ -39,17 +48,12 @@ craigslist_URL = 'https://vancouver.craigslist.org/d/for-sale/search/sss?sort=re
 page = requests.get(craigslist_URL)
 soup = BeautifulSoup(page.content, 'lxml')
 postings = soup.find_all(class_='result-row')
+valid_postings = []
 
 for posting_details in postings:
     price = posting_details.find(class_='result-price').text
     title = posting_details.find('a', class_='result-title').text
     link = posting_details.find('a', class_='result-title')['href']
-
-    # print(title.text)
-    print(price)
-    # print(link)
-    valid_postings = []
     store_valid_postings(price, title, link)
-    print(valid_postings)
 
-
+print(valid_postings)
