@@ -6,7 +6,8 @@ def number_of_pages(total_postings):
     total_postings_num = int(total_postings)
     postings_in_page = 120
     pages = total_postings_num / postings_in_page
-    return pages
+    pages = pages + 1 # add one for the current page
+    return int(pages)
 
 
 def store_valid_postings(price, title, link):
@@ -46,23 +47,38 @@ def check_price(price):
     return False
 
 
+def parse_next_page(url):
+    page = requests.get(url)
+    soup = BeautifulSoup(page.content, 'lxml')
+    postings = soup.find_all(class_='result-row')
+    return postings
+
+
 search_query = "f30"
-upper_price_limit = 300
-keywords = ['f30', 'f30 diffuser', '328i']
+upper_price_limit = 1000
+keywords = ['2001']
 
-craigslist_URL = 'https://vancouver.craigslist.org/d/for-sale/search/sss?sort=rel&query=f30'
+craigslist_url = 'https://vancouver.craigslist.org/d/for-sale/search/sss?sort=rel&query={}'.format(search_query)
 
-page = requests.get(craigslist_URL)
+page = requests.get(craigslist_url)
 soup = BeautifulSoup(page.content, 'lxml')
-total_postings = soup.find(class_='totalcount').text
-pages = number_of_pages(total_postings)
+postings_count = soup.find(class_='totalcount').text
+pages = number_of_pages(postings_count)
 postings = soup.find_all(class_='result-row')
 valid_postings = []
 
-for posting_details in postings:
-    price = posting_details.find(class_='result-price').text
-    title = posting_details.find('a', class_='result-title').text
-    link = posting_details.find('a', class_='result-title')['href']
-    store_valid_postings(price, title, link)
+craigslist_url_with_pages = craigslist_url + '&s={}'
+for i in range(pages):
+    for posting_details in postings:
+        price = posting_details.find(class_='result-price').text
+        title = posting_details.find('a', class_='result-title').text
+        link = posting_details.find('a', class_='result-title')['href']
+        store_valid_postings(price, title, link)
 
-print(valid_postings)
+    current_postings_count = 120 * (i + 1)
+    url = craigslist_url_with_pages.format(str(current_postings_count))
+    postings = parse_next_page(url)
+
+
+for postings in valid_postings:
+    print(postings)
