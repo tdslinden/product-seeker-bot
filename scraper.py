@@ -2,6 +2,13 @@ import requests
 from bs4 import BeautifulSoup
 
 
+def number_of_pages(total_postings):
+    total_postings_num = int(total_postings)
+    postings_in_page = 120
+    pages = total_postings_num / postings_in_page
+    return pages
+
+
 def store_valid_postings(price, title, link):
     is_valid = check_validity(price, title)
     if is_valid:
@@ -39,7 +46,7 @@ def check_price(price):
     return False
 
 
-search_query = "f30 diffuser"
+search_query = "f30"
 upper_price_limit = 300
 keywords = ['f30', 'f30 diffuser', '328i']
 
@@ -47,6 +54,8 @@ craigslist_URL = 'https://vancouver.craigslist.org/d/for-sale/search/sss?sort=re
 
 page = requests.get(craigslist_URL)
 soup = BeautifulSoup(page.content, 'lxml')
+total_postings = soup.find(class_='totalcount').text
+pages = number_of_pages(total_postings)
 postings = soup.find_all(class_='result-row')
 valid_postings = []
 
