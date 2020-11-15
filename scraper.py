@@ -1,5 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
+import db_util
+from datetime import datetime
 
 
 def number_of_pages(total_postings):
@@ -10,11 +12,13 @@ def number_of_pages(total_postings):
     return int(pages)
 
 
-def store_valid_postings(price, title, link):
+def store_valid_postings(pid, price, title, link):
     is_valid = check_validity(price, title)
+    pid = int(pid)
     if is_valid:
-        posting = {'title': title, 'price': price, 'link': link}
+        posting = {'pid': pid, 'title': title, 'price': price, 'link': link}
         valid_postings.append(posting)
+        insert_into_database(pid, title, price, link)
 
 
 def check_validity(price, title):
@@ -54,7 +58,23 @@ def parse_next_page(url):
     return postings
 
 
-search_query = "f30"
+def get_database():
+    conn = db_util.create_connection()
+    return conn
+
+
+def insert_into_database(pid, title, price, link):
+    entry_date = datetime.now()
+    query = """ INSERT INTO Postings (pid, title, price, link, entry_date) VALUES (?,?,?,?,?)"""
+    conn = get_database()
+    cursor = conn.cursor()
+    posting_record = (pid, title, price, link, entry_date)
+    cursor.execute(query, posting_record)
+    conn.commit()
+    conn.close()
+
+
+search_query = 'f30'
 upper_price_limit = 1000
 keywords = ['2001']
 
@@ -70,10 +90,11 @@ valid_postings = []
 craigslist_url_with_pages = craigslist_url + '&s={}'
 for i in range(pages):
     for posting_details in postings:
+        pid = posting_details['data-pid']
         price = posting_details.find(class_='result-price').text
         title = posting_details.find('a', class_='result-title').text
         link = posting_details.find('a', class_='result-title')['href']
-        store_valid_postings(price, title, link)
+        store_valid_postings(pid, price, title, link)
 
     current_postings_count = 120 * (i + 1)
     url = craigslist_url_with_pages.format(str(current_postings_count))
