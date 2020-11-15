@@ -13,7 +13,7 @@ def number_of_pages(total_postings):
 
 
 def store_valid_postings(pid, price, title, link):
-    is_valid = check_validity(price, title)
+    is_valid = check_validity(pid, price, title)
     pid = int(pid)
     if is_valid:
         posting = {'pid': pid, 'title': title, 'price': price, 'link': link}
@@ -21,10 +21,22 @@ def store_valid_postings(pid, price, title, link):
         insert_into_database(pid, title, price, link)
 
 
-def check_validity(price, title):
+def check_validity(pid, price, title):
+    is_pid_valid = check_pid(pid)
     is_posting_title_valid = check_keywords(title)
     is_price_valid = check_price(price)
-    if is_posting_title_valid and is_price_valid:
+    if is_posting_title_valid and is_price_valid and is_pid_valid:
+        return True
+    return False
+
+
+def check_pid(pid):
+    query = 'SELECT * from Postings where pid = ?'
+    cursor = get_database().cursor()
+    cursor.execute(query, (pid,))
+    records = cursor.fetchone()
+
+    if records is None:
         return True
     return False
 
