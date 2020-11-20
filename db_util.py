@@ -1,4 +1,5 @@
 import sqlite3
+import os
 from sqlite3 import Error
 
 DB_FILE = r'db/pysqlite.db'
@@ -30,6 +31,9 @@ def create_connection():
 
 
 def main():
+    if not os.path.exists(DB_FILE):
+        with open(DB_FILE, 'w'): pass
+
     conn = create_connection()
 
     if conn is not None:
