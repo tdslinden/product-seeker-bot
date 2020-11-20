@@ -1,0 +1,14 @@
+# what you are searching for
+search_query: 'ipad pro'
+
+# keywords you want to match in the title
+keywords:
+  - 'ipad pro'
+  - '256 gb'
+  - '11 in'
+
+# the most you're willing to pay for the item
+upper_limit_price: 1000
+
+# email you want to receive matching postings to
+email: 'example@gmail.com'

@@ -1,14 +1,17 @@
 import requests
-from bs4 import BeautifulSoup
 import db_util
+import smtplib
+import yaml
+from bs4 import BeautifulSoup
 from datetime import datetime
+from email.message import EmailMessage
 
 
 def number_of_pages(total_postings):
     total_postings_num = int(total_postings)
     postings_in_page = 120
     pages = total_postings_num / postings_in_page
-    pages = pages + 1 # add one for the current page
+    pages = pages + 1  # add one for the current page
     return int(pages)
 
 
@@ -77,7 +80,7 @@ def get_database():
 
 def insert_into_database(pid, title, price, link):
     entry_date = datetime.now()
-    query = """ INSERT INTO Postings (pid, title, price, link, entry_date) VALUES (?,?,?,?,?)"""
+    query = ''' INSERT INTO Postings (pid, title, price, link, entry_date) VALUES (?,?,?,?,?) '''
     conn = get_database()
     cursor = conn.cursor()
     posting_record = (pid, title, price, link, entry_date)
@@ -86,9 +89,65 @@ def insert_into_database(pid, title, price, link):
     conn.close()
 
 
-search_query = 'f30'
-upper_price_limit = 1000
-keywords = ['2001']
+def remove_outdated_postings():
+    has_postings = check_if_postings_exist()
+    if has_postings:
+        query = "DELETE FROM Postings WHERE entry_date <= datetime('now', '-15 day')"
+        conn = get_database()
+        cursor = conn.cursor()
+        cursor.execute(query)
+        conn.commit()
+
+
+def check_if_postings_exist():
+    query = 'SELECT * from Postings'
+    cursor = get_database().cursor()
+    cursor.execute(query)
+    records = cursor.fetchone()
+    if records is None:
+        return False
+    return True
+
+
+def send_alerts(body, to):
+    credentials_yaml = 'credentials.yaml'
+    credentials = read_parameters_from_yaml(credentials_yaml)
+    message = EmailMessage()
+    message.set_content(body)
+    message['subject'] = 'New Postings'
+    message['to'] = to
+
+    user = credentials['user']
+    message['from'] = user
+    password = credentials['password']
+
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(user, password)
+    server.send_message(message)
+
+    server.quit()
+
+
+def format_message(postings):
+    message = ''
+    for posting in postings:
+        message += posting['title'] + ' ' + posting['link'] + '\n \n'
+    return message
+
+
+def read_parameters_from_yaml(filename):
+    with open(filename) as file:
+        params = yaml.load(file, Loader=yaml.FullLoader)
+        return params
+
+
+parameters_yaml = 'parameters.yaml'
+params = read_parameters_from_yaml(parameters_yaml)
+search_query = params['search_query']
+keywords = params['keywords']
+upper_price_limit = params['upper_limit_price']
+to = params['email']
 
 craigslist_url = 'https://vancouver.craigslist.org/d/for-sale/search/sss?sort=rel&query={}'.format(search_query)
 
@@ -97,9 +156,9 @@ soup = BeautifulSoup(page.content, 'lxml')
 postings_count = soup.find(class_='totalcount').text
 pages = number_of_pages(postings_count)
 postings = soup.find_all(class_='result-row')
-valid_postings = []
-
 craigslist_url_with_pages = craigslist_url + '&s={}'
+valid_postings = []
+remove_outdated_postings()
 for i in range(pages):
     for posting_details in postings:
         pid = posting_details['data-pid']
@@ -112,6 +171,9 @@ for i in range(pages):
     url = craigslist_url_with_pages.format(str(current_postings_count))
     postings = parse_next_page(url)
 
+message = format_message(valid_postings)
+if message:
+    send_alerts(message, to)
 
 for postings in valid_postings:
     print(postings)
