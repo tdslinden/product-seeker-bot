@@ -145,11 +145,12 @@ def read_parameters_from_yaml(filename):
 parameters_yaml = 'parameters.yaml'
 params = read_parameters_from_yaml(parameters_yaml)
 search_query = params['search_query']
+location = params['location']
 keywords = params['keywords']
 upper_price_limit = params['upper_limit_price']
 to = params['email']
 
-craigslist_url = 'https://vancouver.craigslist.org/d/for-sale/search/sss?sort=rel&query={}'.format(search_query)
+craigslist_url = 'https://{}.craigslist.org/d/for-sale/search/sss?sort=rel&query={}'.format(location, search_query)
 
 page = requests.get(craigslist_url)
 soup = BeautifulSoup(page.content, 'lxml')

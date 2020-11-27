@@ -1,3 +1,6 @@
+# the place where your craigslist is located
+location: 'vancouver'
+
 # what you are searching for
 search_query: 'ipad pro'
 
@@ -12,3 +15,4 @@ upper_limit_price: 1000
 
 # email you want to receive matching postings to
 email: 'example@gmail.com'
+
